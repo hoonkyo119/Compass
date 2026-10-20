@@ -29,7 +29,10 @@ export const won = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 export function monthlySummary(transactions: Transaction[], month: string) {
-  const rows = transactions.filter((item) => item.date.startsWith(month));
+  const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+  const rows = validMonth
+    ? transactions.filter((item) => item.date.slice(0, 7) === month)
+    : [];
   const income = rows
     .filter((item) => item.type === "income")
     .reduce((sum, item) => sum + item.amount, 0);
@@ -37,6 +40,15 @@ export function monthlySummary(transactions: Transaction[], month: string) {
     .filter((item) => item.type === "expense")
     .reduce((sum, item) => sum + item.amount, 0);
   return { rows, income, expense, balance: income - expense };
+}
+export function spendingByCategory(transactions: Transaction[]) {
+  const categories = new Map<string, number>();
+  for (const row of transactions) {
+    if (row.type === "expense") {
+      categories.set(row.category, (categories.get(row.category) ?? 0) + row.amount);
+    }
+  }
+  return [...categories.entries()].sort((a, b) => b[1] - a[1]);
 }
 export function assetSummary(assets: Asset[]) {
   const total = assets
@@ -97,3 +109,4 @@ export function parseData(raw: string): FinanceData {
   }
   return { transactions: data.transactions, assets: data.assets };
 }
+
