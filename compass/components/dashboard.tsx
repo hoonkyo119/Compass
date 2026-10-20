@@ -6,6 +6,7 @@ import {
   assetLabels,
   assetSummary,
   monthlySummary,
+  spendingByCategory,
   parseData,
   storageKey,
   validAmount,
@@ -191,12 +192,7 @@ export default function Dashboard() {
   const rows = current.rows
     .filter((row) => filter === "all" || row.type === filter)
     .sort((a, b) => b.date.localeCompare(a.date));
-  const categories = current.rows
-    .filter((row) => row.type === "expense")
-    .reduce<Record<string, number>>((result, row) => {
-      result[row.category] = (result[row.category] ?? 0) + row.amount;
-      return result;
-    }, {});
+  const categories = spendingByCategory(current.rows);
   const transaction = editing && "date" in editing ? editing : null;
   const asset = editing && "kind" in editing ? editing : null;
 
@@ -433,8 +429,7 @@ export default function Dashboard() {
                         <strong>{won(current.expense)}</strong>
                       </div>
                       <div className="category-list">
-                        {Object.entries(categories)
-                          .sort((a, b) => b[1] - a[1])
+                        {categories
                           .map(([name, amount]) => (
                             <div key={name}>
                               <div className="category-label">
@@ -798,3 +793,4 @@ function Summary({
     </article>
   );
 }
+
