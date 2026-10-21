@@ -117,13 +117,13 @@ import { readFileSync } from "node:fs";
   assert.equal(await page.locator(".asset-list li").count(), 4);
   page.once("dialog", (d) => d.accept());
   await page
-    .locator("input[type=file]")
+    .locator("footer input[type=file]")
     .setInputFiles("/tmp/compass-backup.json");
   await page.waitForFunction(
     () => JSON.parse(localStorage.getItem("compass-v0.1")).assets.length === 5,
   );
   await page
-    .locator("input[type=file]")
+    .locator("footer input[type=file]")
     .setInputFiles({
       name: "invalid.json",
       mimeType: "application/json",
@@ -160,3 +160,4 @@ import { readFileSync } from "node:fs";
   console.error(e);
   process.exit(1);
 });
+

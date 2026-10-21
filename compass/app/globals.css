@@ -987,3 +987,26 @@ dialog .muted {
 @media (max-width: 700px) {
   .sidebar .nav-item { width: auto; }
 }
+
+
+.purchase { margin: 24px 0; min-width: 0; }
+.purchase-heading { padding-inline: 0; flex-wrap: wrap; }
+.purchase-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.purchase-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.purchase-records { margin: 20px 0; }
+.purchase-records td { max-width: 260px; white-space: normal; overflow-wrap: anywhere; min-width: 100px; }
+.purchase-records table { min-width: 540px; }
+.purchase-warning { margin-bottom: 20px; }
+.purchase-warning p { font-size: 12px; }
+.purchase-editor { padding: 24px; margin: 20px 0; }
+.purchase-editor h3 { margin-top: 0; }
+.purchase-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.purchase-fields label { display: block; font-size: 12px; min-width: 0; }
+.purchase-fields input:not([type=checkbox]), .purchase-fields select { display: block; width: 100%; min-width: 0; margin-top: 5px; border: 1px solid var(--border); border-radius: 6px; padding: 9px; color: var(--ink); background: var(--paper); }
+.purchase-fields input[type=checkbox] { margin-left: 10px; }
+.purchase-editor .tip p { font-size: 12px; }
+@media (max-width: 700px) {
+  .purchase-summary, .purchase-fields { grid-template-columns: 1fr; }
+  .purchase-heading { align-items: flex-start; }
+  .purchase-editor { padding: 16px; }
+}
