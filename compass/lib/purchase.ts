@@ -130,7 +130,8 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
     const override = scenario?.funding.find(s => s.id === f.id);
     return { ...f, expected: override ? override.amount : f.expected, apr: override ? override.apr : f.apr };
   });
-  const required = sum(costs.map(c => c.amount));
+  const settings = scenario ?? { taxMode: p.tax.mode, months: p.tax.months, fee: p.tax.fee };
+  const required = sum([...costs.map(c => c.amount), settings.taxMode === "card" ? settings.fee : 0]);
   const tax = sum(costs.filter(c => c.kind === "tax").map(c => c.amount));
   const expected = sum(funding.map(f => f.expected));
   const secured = sum(funding.map(f => f.actual));
@@ -138,7 +139,6 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
   const remaining = required - paid;
   const includesPaid = expected - required;
   const afterPaid = expected - remaining;
-  const settings = scenario ?? { taxMode: p.tax.mode, months: p.tax.months, fee: p.tax.fee };
   const loans = funding.filter(f => f.loan && (f.expected === null || f.expected > 0));
   const interest = loans.reduce((n, f) => n + (f.expected ?? 0) * (f.apr ?? 0) / 1200, 0);
   const taxRemaining = Math.max(0, tax - (p.tax.actualAmount ?? 0));
@@ -147,7 +147,6 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
   const unknownAmounts = costs.filter(c => c.amount === null).length + funding.filter(f => f.expected === null).length;
   const unknownInterest = loans.some(f => f.apr === null || f.expected === null);
   const provisional = unknownAmounts > 0 || funding.some(f => f.needsReview);
-  sum([required, settings.taxMode === "card" ? settings.fee : 0]);
   if (![remaining, includesPaid, afterPaid].every(Number.isSafeInteger)) fail();
   return { required, tax, expected, secured, paid, remaining, includesPaid, afterPaid,
     balance: p.basis === "unknown" ? null : p.basis === "after-paid" ? afterPaid : includesPaid,

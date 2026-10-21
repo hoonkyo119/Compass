@@ -145,6 +145,8 @@ export default function PurchasePanel({ value, onSave, disabled }: {
         <p>미입력 예상금액 {summary.unknownAmounts}건, 실제 확보 미입력 {summary.unknownActual}건. 미입력은 0원 확정이 아니며 합계는 입력분만 계산합니다.</p>
         <p>기납부 후 가용재원 기준: {won(summary.afterPaid)} / 기납부 포함 총 재원 기준: {won(summary.includesPaid)} (세금 포함).</p>
         {value.basis === "unknown" && <p>기납부액이 재원 합계에 포함되었는지 미확인입니다. 매매 설정에서 기준을 선택하세요.</p>}
+        {summary.unknownFee && <p>카드 할부수수료가 미입력입니다. 필요금액과 잔액에는 입력된 수수료만 반영됩니다.</p>}
+        <p>세금 납부 조건 (미확정 메모): {value.tax.note || "미입력"}</p>
         {summary.provisional && <p>미입력 또는 확인 필요 재원이 있어 예상 잔액은 잠정값입니다.</p>}
         {summary.scheduleGap !== 0 && <p>세금 제외 비용과 납부 일정의 차이: {won(summary.scheduleGap)}. 중개·등기비를 중복 등록하지 않았는지 확인하세요.</p>}
         {value.payments.some(p => p.status === "unknown") && <p>납부 여부 미확인 일정이 있습니다. 확인 전까지 기납부액에 포함하지 않습니다.</p>}
@@ -154,9 +156,9 @@ export default function PurchasePanel({ value, onSave, disabled }: {
         onSubmit={e => { e.preventDefault(); submit(new FormData(e.currentTarget)); }}>
         <h3>{sectionNames[edit.section]} 편집</h3><p className="muted">금액을 비워두면 미입력, 0을 입력하면 확정 0원입니다. 저장하면 기존 시뮬레이션은 초기화됩니다.</p>
         <div className="purchase-fields">{fields[edit.section].map(field => <label key={field.key}>{field.label}
-          {field.options ? <select name={field.key} defaultValue={String(edit.row[field.key])}>{field.options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select>
-            : field.type === "checkbox" ? <input name={field.key} type="checkbox" defaultChecked={Boolean(edit.row[field.key])} />
-            : <input name={field.key} type={field.type ?? "text"} required={field.required} maxLength={field.maxLength ?? 80}
+          {field.options ? <select aria-label={field.label} name={field.key} defaultValue={String(edit.row[field.key])}>{field.options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select>
+            : field.type === "checkbox" ? <input aria-label={field.label} name={field.key} type="checkbox" defaultChecked={Boolean(edit.row[field.key])} />
+            : <input aria-label={field.label} name={field.key} type={field.type ?? "text"} required={field.required} maxLength={field.maxLength ?? 80}
               min={field.key === "months" ? 1 : field.type === "number" ? 0 : undefined}
               max={field.key === "months" ? 120 : field.key === "apr" ? 100 : field.type === "number" ? Number.MAX_SAFE_INTEGER : undefined}
               step={field.step ?? "1"} defaultValue={String(edit.row[field.key] ?? "")} />}
@@ -226,7 +228,7 @@ function Simulation({ value, onSave, disabled }: { value: Purchase; onSave: (s: 
     </div>
     {result ? <div className="tip"><div><strong>예상 잔액: {result.balance === null ? "기납부 기준 미확인" : won(result.balance)}</strong>
       <p>기납부 후 기준 {won(result.afterPaid)} / 포함 기준 {won(result.includesPaid)}. 세금 전체를 반영한 잔액이며 카드 납부로 비용이 줄어들지 않습니다.</p>
-      <p>카드 수수료까지 차감한 최종 잔액: {result.balance === null ? "기준 미확인" : won(result.balance - (draft.taxMode === "card" ? draft.fee ?? 0 : 0))}{result.unknownFee ? " (수수료 미입력)" : ""}</p>
+      <p>필요금액과 잔액에는 입력한 카드 할부수수료가 포함됩니다.{result.unknownFee ? " 수수료 미입력으로 잠정값입니다." : ""}</p>
       <p>세금 납부 시점 이연 후 가용액: {result.immediateBalance === null ? "기준 미확인" : won(result.immediateBalance)} (할부 상환액 별도 확보 필요)</p>
       <p>월 부담 (입력분): {won(Math.round(result.monthly))} = 대출 이자 {won(Math.round(result.interest))} + 세금 원금 {won(Math.round(result.cardPrincipal))} + 평균 수수료 {won(Math.round(result.cardFee))}</p>
       <p>대출 원금 상환·생활비는 포함하지 않습니다. 할부 원금/수수료는 남은 세금을 기간으로 나눈 평균값으로, 실제 청구액·면제 조건은 카드사 확인이 필요합니다.</p>

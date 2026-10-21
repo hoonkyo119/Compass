@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { fixture } from "./purchase-fixture.mjs";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, headless: true, args: ["--no-sandbox"] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   const base = process.env.COMPASS_BASE_URL || "http://127.0.0.1:3101";
@@ -45,7 +45,7 @@ try {
   await simulation.getByLabel("대출 예상 투입 (원)", { exact: true }).fill("9000");
   await simulation.getByLabel("세금 납부방식", { exact: true }).selectOption("card");
   await simulation.getByLabel("총 할부수수료 (원)", { exact: true }).fill("100");
-  assert.match(await simulation.innerText(), /2,300/);
+  assert.match(await simulation.innerText(), /2,200/);
   await simulation.getByRole("button", { name: "시나리오 저장", exact: true }).click();
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("compass-v0.1")).purchase.scenario?.funding[0].amount === 9000);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("compass-v0.1")));
@@ -73,4 +73,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log("PASS: private import, records, unknown vs zero, basis selection, isolated saved simulation, reload, full backup, invalid import protection, mobile overflow");
+} catch (error) {
+  console.error("Synthetic editor diagnostics:", await page.locator(".purchase-editor").innerText().catch(() => "no editor"));
+  throw error;
 } finally { await browser.close(); }

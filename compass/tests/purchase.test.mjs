@@ -41,11 +41,11 @@ test("simulation recalculates loan interest, tax installments and fees without c
   assert.equal(result.cardPrincipal, 90);
   assert.equal(result.cardFee, 10);
   assert.equal(result.monthly, 180);
-  assert.equal(result.balance, 600);
-  assert.equal(result.immediateBalance, 1500);
+  assert.equal(result.balance, 500);
+  assert.equal(result.immediateBalance, 1400);
   assert.equal(JSON.stringify(p), before);
   s.funding[0].amount = 9000;
-  assert.equal(purchaseSummary(p, s).balance, 1600);
+  assert.equal(purchaseSummary(p, s).balance, 1500);
 });
 test("tax actuals reduce remaining card principal and add to paid only once", () => {
   const p = fixture(); p.tax = { ...p.tax, mode: "card", actualAmount: 100, actualDate: "2030-01-02", fee: null };
