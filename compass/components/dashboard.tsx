@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import PurchasePanel from "./purchase";
 import { useEffect, useRef, useState } from "react";
 import {
   assetLabels,
   assetSummary,
   monthlySummary,
+  spendingByCategory,
   parseData,
   storageKey,
   validAmount,
@@ -191,12 +193,7 @@ export default function Dashboard() {
   const rows = current.rows
     .filter((row) => filter === "all" || row.type === filter)
     .sort((a, b) => b.date.localeCompare(a.date));
-  const categories = current.rows
-    .filter((row) => row.type === "expense")
-    .reduce<Record<string, number>>((result, row) => {
-      result[row.category] = (result[row.category] ?? 0) + row.amount;
-      return result;
-    }, {});
+  const categories = spendingByCategory(current.rows);
   const transaction = editing && "date" in editing ? editing : null;
   const asset = editing && "kind" in editing ? editing : null;
 
@@ -433,8 +430,7 @@ export default function Dashboard() {
                         <strong>{won(current.expense)}</strong>
                       </div>
                       <div className="category-list">
-                        {Object.entries(categories)
-                          .sort((a, b) => b[1] - a[1])
+                        {categories
                           .map(([name, amount]) => (
                             <div key={name}>
                               <div className="category-label">
@@ -494,6 +490,7 @@ export default function Dashboard() {
                   detail="총 자산 − 남은 대출"
                 />
               </section>
+              <PurchasePanel value={data.purchase} disabled={!ready} onSave={(purchase) => persist({ ...data, purchase })} />
               <div className="asset-grid">
                 {(Object.keys(assetLabels) as AssetKind[]).map((kind) => {
                   const items = data.assets.filter((row) => row.kind === kind);
@@ -798,3 +795,4 @@ function Summary({
     </article>
   );
 }
+

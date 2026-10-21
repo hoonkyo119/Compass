@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   monthlySummary,
+  spendingByCategory,
   assetSummary,
   parseData,
   validAmount,
@@ -80,4 +81,26 @@ test("amounts must be positive safe whole won values", () => {
   ])
     assert.equal(validAmount(amount), false);
   assert.equal(validAmount(100), true);
+});
+
+
+test("empty and invalid month selections never combine unrelated months", () => {
+  for (const month of ["", "2026", "2026-1", "2026-00", "2026-13"]) {
+    assert.deepEqual(monthlySummary([transaction], month), {
+      rows: [], income: 0, expense: 0, balance: 0,
+    });
+  }
+});
+test("category totals handle object property names and exclude income", () => {
+  const rows = [
+    { ...transaction, type: "expense", category: "__proto__", amount: 100 },
+    { ...transaction, type: "expense", category: "constructor", amount: 200 },
+    { ...transaction, type: "expense", category: "__proto__", amount: 300 },
+    { ...transaction, type: "expense", category: "toString", amount: 50 },
+    { ...transaction, category: "constructor", amount: 10000 },
+  ];
+  assert.deepEqual(spendingByCategory(rows), [
+    ["__proto__", 400], ["constructor", 200], ["toString", 50],
+  ]);
+  assert.deepEqual(spendingByCategory([]), []);
 });
