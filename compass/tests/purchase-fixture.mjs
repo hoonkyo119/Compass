@@ -2,6 +2,7 @@ import { newPurchase } from "../lib/purchase.ts";
 // Synthetic records only.
 export function fixture() {
   const p = newPurchase();
+  p.basisPaid = 1000;
   p.costs = [
     { id: "price", name: "매매대금", kind: "price", amount: 10000 },
     { id: "fee", name: "부대비용", kind: "fee", amount: 300 },

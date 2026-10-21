@@ -45,7 +45,7 @@ try {
   await simulation.getByLabel("대출 예상 투입 (원)", { exact: true }).fill("9000");
   await simulation.getByLabel("세금 납부방식", { exact: true }).selectOption("card");
   await simulation.getByLabel("총 할부수수료 (원)", { exact: true }).fill("100");
-  assert.match(await simulation.innerText(), /2,200/);
+  assert.match(await simulation.innerText(), /1,700/);
   await simulation.getByRole("button", { name: "시나리오 저장", exact: true }).click();
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("compass-v0.1")).purchase.scenario?.funding[0].amount === 9000);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("compass-v0.1")));

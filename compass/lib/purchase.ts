@@ -17,14 +17,14 @@ export type Scenario = {
   taxMode: "cash" | "card"; months: number; fee: Money;
 };
 export type Purchase = {
-  version: 1; name: string; basis: "unknown" | "after-paid" | "includes-paid";
+  version: 1; name: string; basisPaid: Money; basis: "unknown" | "after-paid" | "includes-paid";
   costs: Cost[]; payments: Payment[]; funding: Funding[];
   tax: { mode: "cash" | "card"; months: number; fee: Money; note: string;
     actualAmount: Money; actualDate: string | null };
   scenario: Scenario | null;
 };
 export function newPurchase(): Purchase {
-  return { version: 1, name: "부동산 매매", basis: "unknown", costs: [], payments: [], funding: [],
+  return { version: 1, name: "부동산 매매", basisPaid: null, basis: "unknown", costs: [], payments: [], funding: [],
     tax: { mode: "cash", months: 10, fee: null, note: "", actualAmount: null, actualDate: null }, scenario: null };
 }
 function fail(): never { throw new Error("부동산 매매 데이터의 형식·금액·날짜를 확인해 주세요."); }
@@ -62,6 +62,7 @@ function taxSettings(v: Record<string, unknown>, key: "mode" | "taxMode") {
 export function validatePurchase(value: unknown): Purchase {
   object(value);
   if (value.version !== 1) fail();
+  money(value.basisPaid);
   text(value.name, 80, true); choice(value.basis, ["unknown", "after-paid", "includes-paid"]);
   rows(value.costs); rows(value.payments); rows(value.funding);
   for (const row of value.costs) {
@@ -138,7 +139,8 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
   const paid = sum([...p.payments.map(r => r.actualAmount), p.tax.actualAmount]);
   const remaining = required - paid;
   const includesPaid = expected - required;
-  const afterPaid = expected - remaining;
+  // The funding sheet baseline is fixed: later payments must not create new funds.
+  const afterPaid = p.basisPaid === null ? null : sum([expected, p.basisPaid]) - required;
   const loans = funding.filter(f => f.loan && (f.expected === null || f.expected > 0));
   const interest = loans.reduce((n, f) => n + (f.expected ?? 0) * (f.apr ?? 0) / 1200, 0);
   const taxRemaining = Math.max(0, tax - (p.tax.actualAmount ?? 0));
@@ -147,15 +149,15 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
   const unknownAmounts = costs.filter(c => c.amount === null).length + funding.filter(f => f.expected === null).length;
   const unknownInterest = loans.some(f => f.apr === null || f.expected === null);
   const provisional = unknownAmounts > 0 || funding.some(f => f.needsReview);
-  if (![remaining, includesPaid, afterPaid].every(Number.isSafeInteger)) fail();
+  if (![remaining, includesPaid, ...(afterPaid === null ? [] : [afterPaid])].every(Number.isSafeInteger)) fail();
   return { required, tax, expected, secured, paid, remaining, includesPaid, afterPaid,
     balance: p.basis === "unknown" ? null : p.basis === "after-paid" ? afterPaid : includesPaid,
     unknownAmounts, unknownInterest, provisional,
     unknownActual: funding.filter(f => f.actual === null).length,
     interest, cardPrincipal, cardFee, monthly: interest + cardPrincipal + cardFee,
     unknownFee: settings.taxMode === "card" && settings.fee === null,
-    immediateBalance: p.basis === "unknown" ? null :
-      (p.basis === "after-paid" ? afterPaid : includesPaid) + (settings.taxMode === "card" ? taxRemaining : 0),
+    immediateBalance: p.basis === "unknown" || (p.basis === "after-paid" && afterPaid === null) ? null :
+      (p.basis === "after-paid" ? afterPaid! : includesPaid) + (settings.taxMode === "card" ? taxRemaining : 0),
     scheduleGap: sum(costs.filter(c => c.kind !== "tax").map(c => c.amount)) - sum(p.payments.map(r => r.amount)),
     taxMode: settings.taxMode,
   };

@@ -28,6 +28,7 @@ const fields: Record<Section, Field[]> = {
     { key: "apr", label: "연 금리 (%)", type: "number", step: "0.001" },
     { key: "needsReview", label: "확인 필요", type: "checkbox" }, { key: "note", label: "확인 메모", maxLength: 1000 } ],
   settings: [ { key: "name", label: "매매 이름", required: true },
+    { key: "basisPaid", label: "재원표 기준 기납부액 (원, 이후 납부와 분리)", type: "number" },
     { key: "basis", label: "재원 합계의 기납부 기준", options: [["unknown", "미확인 — 두 기준 함께 표시"], ["after-paid", "기납부 후 가용재원"], ["includes-paid", "기납부액을 포함한 총 재원"]] },
     { key: "mode", label: "세금 납부방식", options: [["cash", "일시납"], ["card", "카드 할부"]] },
     { key: "months", label: "세금 할부 개월", type: "number", required: true },
@@ -78,7 +79,7 @@ export default function PurchasePanel({ value, onSave, disabled }: {
       : section === "payments" ? { name: "", dueDate: null, amount: null, status: "unknown", actualDate: null, actualAmount: null }
       : section === "funding" ? { owner: "", name: "", limit: null, gross: null, expected: null, actual: null,
         securedDate: null, loan: false, apr: null, purpose: "purchase", needsReview: false, note: "" }
-      : { name: value.name, basis: value.basis, ...value.tax };
+      : { name: value.name, basis: value.basis, basisPaid: value.basisPaid, ...value.tax };
     setEdit({ section, row: { ...defaults, ...(row ?? {}), ...(section === "settings" ? {} : { id: row?.id ?? crypto.randomUUID() }) } });
     setMessage("");
   }
@@ -93,9 +94,9 @@ export default function PurchasePanel({ value, onSave, disabled }: {
     }
     const next = structuredClone(value);
     if (edit.section === "settings") {
-      next.name = row.name as string; next.basis = row.basis as Purchase["basis"];
-      const { name: _name, basis: _basis, ...tax } = row;
-      void _name; void _basis;
+      next.name = row.name as string; next.basis = row.basis as Purchase["basis"]; next.basisPaid = row.basisPaid as Money;
+      const { name: _name, basis: _basis, basisPaid: _basisPaid, ...tax } = row;
+      void _name; void _basis; void _basisPaid;
       next.tax = tax as Purchase["tax"];
     } else {
       // Each section is independently validated before anything reaches storage.
@@ -143,7 +144,9 @@ export default function PurchasePanel({ value, onSave, disabled }: {
       <div className="tip purchase-warning"><div><strong>자금계획 확인사항</strong>
         <p>재원은 예상 투입금액만 합산합니다. 한도·세전금액·실제 확보액은 중복 합산하지 않습니다. 상환용 재원은 제외합니다.</p>
         <p>미입력 예상금액 {summary.unknownAmounts}건, 실제 확보 미입력 {summary.unknownActual}건. 미입력은 0원 확정이 아니며 합계는 입력분만 계산합니다.</p>
-        <p>기납부 후 가용재원 기준: {won(summary.afterPaid)} / 기납부 포함 총 재원 기준: {won(summary.includesPaid)} (세금 포함).</p>
+        <p>기납부 후 가용재원 기준: {amount(summary.afterPaid)} / 기납부 포함 총 재원 기준: {won(summary.includesPaid)} (세금 포함).</p>
+        <p>재원표 기준 기납부액: {amount(value.basisPaid)}. 이후 실제 납부를 기록해도 기준액은 자동 변경하지 않습니다.</p>
+        {value.basis === "after-paid" && value.basisPaid === null && <p>재원표 기준 기납부액이 미입력입니다. 매매 설정에서 입력해 주세요.</p>}
         {value.basis === "unknown" && <p>기납부액이 재원 합계에 포함되었는지 미확인입니다. 매매 설정에서 기준을 선택하세요.</p>}
         {summary.unknownFee && <p>카드 할부수수료가 미입력입니다. 필요금액과 잔액에는 입력된 수수료만 반영됩니다.</p>}
         <p>세금 납부 조건 (미확정 메모): {value.tax.note || "미입력"}</p>
@@ -227,7 +230,7 @@ function Simulation({ value, onSave, disabled }: { value: Purchase; onSave: (s: 
       <NumberField label="총 할부수수료 (원)" value={draft.fee} onChange={v => setDraft(d => ({ ...d, fee: v }))} />
     </div>
     {result ? <div className="tip"><div><strong>예상 잔액: {result.balance === null ? "기납부 기준 미확인" : won(result.balance)}</strong>
-      <p>기납부 후 기준 {won(result.afterPaid)} / 포함 기준 {won(result.includesPaid)}. 세금 전체를 반영한 잔액이며 카드 납부로 비용이 줄어들지 않습니다.</p>
+      <p>기납부 후 기준 {amount(result.afterPaid)} / 포함 기준 {won(result.includesPaid)}. 세금 전체를 반영한 잔액이며 카드 납부로 비용이 줄어들지 않습니다.</p>
       <p>필요금액과 잔액에는 입력한 카드 할부수수료가 포함됩니다.{result.unknownFee ? " 수수료 미입력으로 잠정값입니다." : ""}</p>
       <p>세금 납부 시점 이연 후 가용액: {result.immediateBalance === null ? "기준 미확인" : won(result.immediateBalance)} (할부 상환액 별도 확보 필요)</p>
       <p>월 부담 (입력분): {won(Math.round(result.monthly))} = 대출 이자 {won(Math.round(result.interest))} + 세금 원금 {won(Math.round(result.cardPrincipal))} + 평균 수수료 {won(Math.round(result.cardFee))}</p>

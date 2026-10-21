@@ -28,6 +28,10 @@ test("basis is explicit and unknown payments are not paid", () => {
   assert.equal(purchaseSummary(p).balance, -200);
   p.payments[1] = { ...p.payments[1], status: "partial", actualAmount: 500, actualDate: "2030-02-01" };
   assert.equal(purchaseSummary(validatePurchase(p)).paid, 1500);
+  p.basis = "after-paid";
+  assert.equal(purchaseSummary(p).balance, 800);
+  p.basisPaid = null;
+  assert.equal(purchaseSummary(p).balance, null);
 });
 test("simulation recalculates loan interest, tax installments and fees without changing records", () => {
   const p = fixture(); p.basis = "after-paid";
