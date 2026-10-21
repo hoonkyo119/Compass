@@ -54,8 +54,8 @@ function rows(v: unknown): asserts v is Record<string, unknown>[] {
     ids.add(row.id);
   }
 }
-function taxSettings(v: Record<string, unknown>) {
-  choice(v.mode ?? v.taxMode, ["cash", "card"]);
+function taxSettings(v: Record<string, unknown>, key: "mode" | "taxMode") {
+  choice(v[key], ["cash", "card"]);
   if (!Number.isInteger(v.months) || (v.months as number) < 1 || (v.months as number) > 120) fail();
   money(v.fee);
 }
@@ -85,11 +85,11 @@ export function validatePurchase(value: unknown): Purchase {
       ((row.expected !== null && (row.expected as number) > (row.limit as number)) ||
        (row.actual !== null && (row.actual as number) > (row.limit as number)))) fail();
   }
-  object(value.tax); taxSettings(value.tax); text(value.tax.note, 1000);
+  object(value.tax); taxSettings(value.tax, "mode"); text(value.tax.note, 1000);
   money(value.tax.actualAmount); date(value.tax.actualDate);
   if (value.tax.actualDate !== null && value.tax.actualAmount === null) fail();
   if (value.scenario !== null) {
-    object(value.scenario); taxSettings(value.scenario); rows(value.scenario.funding); rows(value.scenario.costs);
+    object(value.scenario); taxSettings(value.scenario, "taxMode"); rows(value.scenario.funding); rows(value.scenario.costs);
     for (const row of value.scenario.funding) {
       const source = value.funding.find(f => f.id === row.id);
       if (!source) fail();
@@ -108,7 +108,10 @@ export function validatePurchase(value: unknown): Purchase {
     scenario?.costs.map(r => r.amount) ?? [], scenario?.funding.map(r => r.amount) ?? []]) {
     sum(group as Money[]);
   }
-  return value as unknown as Purchase;
+  const purchase = value as unknown as Purchase;
+  purchaseSummary(purchase);
+  if (scenario) purchaseSummary(purchase, scenario);
+  return purchase;
 }
 export function sum(values: Money[]) {
   const total = values.reduce<number>((n, v) => n + (v ?? 0), 0);
@@ -144,6 +147,8 @@ export function purchaseSummary(p: Purchase, scenario: Scenario | null = null) {
   const unknownAmounts = costs.filter(c => c.amount === null).length + funding.filter(f => f.expected === null).length;
   const unknownInterest = loans.some(f => f.apr === null || f.expected === null);
   const provisional = unknownAmounts > 0 || funding.some(f => f.needsReview);
+  sum([required, settings.taxMode === "card" ? settings.fee : 0]);
+  if (![remaining, includesPaid, afterPaid].every(Number.isSafeInteger)) fail();
   return { required, tax, expected, secured, paid, remaining, includesPaid, afterPaid,
     balance: p.basis === "unknown" ? null : p.basis === "after-paid" ? afterPaid : includesPaid,
     unknownAmounts, unknownInterest, provisional,
