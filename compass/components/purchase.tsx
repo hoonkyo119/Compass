@@ -223,8 +223,8 @@ function Simulation({ value, onSave, disabled }: { value: Purchase; onSave: (s: 
         {f.loan && <NumberField label={`${f.name} 연 금리 (%)`} rate value={draft.funding.find(r => r.id === f.id)?.apr ?? null} onChange={v => funding(f.id, "apr", v)} />}</div>)}
       {value.costs.map(c => <NumberField key={c.id} label={`${c.name} 가정 (원)`} value={draft.costs.find(r => r.id === c.id)?.amount ?? null}
         onChange={v => setDraft(d => ({ ...d, costs: d.costs.map(r => r.id === c.id ? { ...r, amount: v } : r) }))} />)}
-      <label>세금 납부방식<select value={draft.taxMode} onChange={e => setDraft(d => ({ ...d, taxMode: e.target.value as Scenario["taxMode"] }))}><option value="cash">일시납</option><option value="card">카드 할부</option></select></label>
-      <label>할부 개월<input type="number" min="1" max="120" step="1" value={draft.months} onChange={e => {
+      <label>세금 납부방식<select aria-label="세금 납부방식" value={draft.taxMode} onChange={e => setDraft(d => ({ ...d, taxMode: e.target.value as Scenario["taxMode"] }))}><option value="cash">일시납</option><option value="card">카드 할부</option></select></label>
+      <label>할부 개월<input aria-label="할부 개월" type="number" min="1" max="120" step="1" value={draft.months} onChange={e => {
         const n = Number(e.target.value); if (Number.isInteger(n) && n >= 1 && n <= 120) setDraft(d => ({ ...d, months: n }));
       }} /></label>
       <NumberField label="총 할부수수료 (원)" value={draft.fee} onChange={v => setDraft(d => ({ ...d, fee: v }))} />
